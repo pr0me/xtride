@@ -1,0 +1,191 @@
+diff --git a/dataset-gen/decompiler/debug.py b/dataset-gen/decompiler/debug.py
+index 4a5905c..8deb91e 100644
+--- a/dataset-gen/decompiler/debug.py
++++ b/dataset-gen/decompiler/debug.py
+@@ -1,8 +1,15 @@
+ import os
+ import pickle
++import sys
++from typing import Dict
++
++# add current directory to path for imports
++sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+ 
+ import idaapi as ida
+ from idautils import Functions
++from ida_ast import AST
++from ida_lines import tag_remove
+ 
+ from collect import Collector
+ from function import Function
+@@ -26,7 +33,7 @@ class CollectDebug(Collector):
+ 
+     def activate(self, ctx) -> int:
+         """Collects types, user-defined variables, and their locations"""
+-        print("Collecting vars and types.")
++        print("[debug] Collecting vars and types.")
+         # `ea` is the start address of a single function
+         for ea in Functions():
+             # Decompile
+@@ -52,28 +59,52 @@ class CollectDebug(Collector):
+                 cfunc.get_stkoff_delta(),
+                 [v for v in cfunc.get_lvars() if not v.is_arg_var],
+             )
++
++            raw_code = ""
++            for line in cfunc.get_pseudocode():
++                raw_code += f"{' '.join(tag_remove(line.line).split())}\n"
++            ast = AST(function=cfunc)
++
+             self.functions[ea] = Function(
++                # ast=ast,
+                 name=name,
+                 return_type=return_type,
+                 arguments=arguments,
+                 local_vars=local_vars,
++                raw_code=raw_code,
+             )
+ 
++        print(f"[debug] collected {len(self.functions)} functions")
+         self.write_type_lib()
++        print("[debug] wrote type library")
+         self.write_functions()
++        print("[debug] wrote functions pickle")
+         return 1
+ 
+ 
+-ida.auto_wait()
+-if not ida.init_hexrays_plugin():
+-    ida.load_plugin("hexrays")
+-    ida.load_plugin("hexx64")
++print("[debug] starting debug.py")
++try:
++    ida.auto_wait()
+     if not ida.init_hexrays_plugin():
+-        print("Unable to load Hex-rays")
+-        ida.qexit(1)
+-    else:
+-        print(f"Hex-rays version {ida.get_hexrays_version()}")
+-
+-debug = CollectDebug()
+-debug.activate(None)
+-ida.qexit(0)
++        # try loading plugin with different names for IDA 9.0
++        for plugin_name in ["hexrays", "hexx64", "hexarm64", "hexarm"]:
++            try:
++                ida.load_plugin(plugin_name)
++                if ida.init_hexrays_plugin():
++                    break
++            except:
++                pass
++        if not ida.init_hexrays_plugin():
++            print("Unable to load Hex-rays")
++            ida.qexit(1)
++    print(f"Hex-rays version {ida.get_hexrays_version()}")
++
++    debug = CollectDebug()
++    debug.activate(None)
++    print("[debug] finished debug.py")
++    ida.qexit(0)
++except Exception as e:
++    print(f"[debug] Error: {e}")
++    import traceback
++    traceback.print_exc()
++    ida.qexit(1)
+diff --git a/dataset-gen/decompiler/dump_trees.py b/dataset-gen/decompiler/dump_trees.py
+index 793321d..3718e87 100644
+--- a/dataset-gen/decompiler/dump_trees.py
++++ b/dataset-gen/decompiler/dump_trees.py
+@@ -3,8 +3,12 @@ import idaapi as ida
+ import gzip
+ import jsonlines
+ import os
++import sys
+ import pickle
+ 
++# add current directory to path for imports
++sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
++
+ from typing import Dict, List
+ 
+ import idaapi as ida
+@@ -21,13 +25,12 @@ class CollectDecompiler(Collector):
+     """Class for collecting decompiler-specific information"""
+ 
+     def __init__(self):
+-        print("Initializing collect decompiler")
++        print("[dump] Initializing collect decompiler")
+         super().__init__()
+-        print("Loading functions")
+         # Load the functions collected by CollectDebug
+         with open(os.environ["FUNCTIONS"], "rb") as functions_fh:
+             self.debug_functions: Dict[int, Function] = pickle.load(functions_fh)
+-        print("Done")
++        print(f"[dump] Loaded functions: {len(self.debug_functions)}")
+         self.functions: List[CollectedFunction] = list()
+         self.output_file_name = os.path.join(
+             os.environ['OUTPUT_DIR'],
+@@ -45,7 +48,7 @@ class CollectDecompiler(Collector):
+         """Collects types, user-defined variables, their locations in addition to the
+         AST and raw code.
+         """
+-        print("Collecting vars and types.")
++        print("[dump] Collecting vars and types.")
+         for ea in (ea for ea in Functions() if ea in self.debug_functions):
+             # Decompile
+             f = ida.get_func(ea)
+@@ -74,6 +77,7 @@ class CollectDecompiler(Collector):
+             raw_code = ""
+             for line in cfunc.get_pseudocode():
+                 raw_code += f"{' '.join(tag_remove(line.line).split())}\n"
++            print("\n-----------------------------\n" + raw_code)
+             ast = AST(function=cfunc)
+             decompiler = Function(
+                 ast=ast,
+@@ -90,21 +94,33 @@ class CollectDecompiler(Collector):
+                     decompiler=decompiler,
+                 )
+             )
++        print(f"[dump] collected {len(self.functions)} functions, writing output")
+         self.write_info()
+         return 1
+ 
+ 
+-ida.auto_wait()
+-if not ida.init_hexrays_plugin():
+-    ida.load_plugin("hexrays")
+-    ida.load_plugin("hexx64")
++print("[dump] starting dump_trees.py")
++try:
++    ida.auto_wait()
+     if not ida.init_hexrays_plugin():
+-        print("Unable to load Hex-rays")
+-        ida.qexit(1)
+-    else:
+-        print(f"Hex-rays version {ida.get_hexrays_version()}")
+-
+-decompiler = CollectDecompiler()
+-decompiler.activate(None)
+-print("Done with activate")
+-ida.qexit(0)
++        # try loading plugin with different names for IDA 9.0
++        for plugin_name in ["hexrays", "hexx64", "hexarm64", "hexarm"]:
++            try:
++                ida.load_plugin(plugin_name)
++                if ida.init_hexrays_plugin():
++                    break
++            except:
++                pass
++        if not ida.init_hexrays_plugin():
++            print("Unable to load Hex-rays")
++            ida.qexit(1)
++
++    decompiler = CollectDecompiler()
++    decompiler.activate(None)
++    print("[dump] Done with activate")
++    ida.qexit(0)
++except Exception as e:
++    print(f"[dump] Error: {e}")
++    import traceback
++    traceback.print_exc()
++    ida.qexit(1)

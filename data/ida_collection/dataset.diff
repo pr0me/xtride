@@ -1,0 +1,26 @@
+diff --git a/dirty/utils/dataset.py b/dirty/utils/dataset.py
+index 3de654f..a8944f2 100644
+--- a/dirty/utils/dataset.py
++++ b/dirty/utils/dataset.py
+@@ -98,6 +98,12 @@ class Example:
+         for idx in range(len(code_tokens)):
+             if code_tokens[idx] in varnames:
+                 code_tokens[idx] = f"@@{code_tokens[idx]}@@"
++        # og
++        # valid = (name == cf.debug.name and source);
++        # allow empty variable set to retain base functions for function recognition
++        valid = name == cf.debug.name;
++        # name check does not make sense anymore as we fully strip now
++        # valid = source;
+ 
+         return cls(
+             name,
+@@ -105,7 +111,7 @@ class Example:
+             source,
+             target,
+             kwargs["binary_file"],
+-            valid=name == cf.debug.name and source,
++            valid,
+             raw_code=raw_code,
+         )
+ 

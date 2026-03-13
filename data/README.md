@@ -1,6 +1,6 @@
 # Dataset Preparation
 
-# DIRT
+## DIRT
 
 In our paper, we made use of the existing DIRT dataset.
 The raw, unpreprocessed data is available at: https://kilthub.cmu.edu/articles/dataset/Unpreprocessed_Dataset_for_Idiomatic_ReTyping_DIRT_/20732656
@@ -26,6 +26,11 @@ python3 -m stride.converters.dirt \
 ```
 This format can be used for database generation and inference both with the original STRIDE implementation as well as with XTRIDE.
 
-# coreutils
+## coreutils
 For our evaluation regarding struct identification and recovery, we used a dataset of binaries in the exact version
 as published by HyRES: https://github.com/Sandspeare/HyRES/tree/main/binaries
+
+The functions and type labels can be extracted in a format compatible with DIRTY / STRIDE / XTRIDE with the scripts provided in https://github.com/CMUSTRUDEL/DIRTY/tree/main/dataset-gen (IDA pro-based).
+Note that the original script version does retain function names and to ensure fairness in evaluation against HyRES and TypeForge, we had to fully strip the binaries, e.g., by using [stripping script](./strip_elf_debug.sh), and [enable support in the DIRT collection scripts](./ida_collection/dataset.diff).
+
+After running the data collection scripts (see [IDA 9 Guide](./ida_collection/IDA_9_MIGRATION_GUIDE.md)), you can continue as described [above](#dirt).
