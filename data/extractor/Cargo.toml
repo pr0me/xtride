@@ -1,0 +1,31 @@
+[package]
+name = "extract"
+version = "0.1.0"
+edition = "2021"
+authors = ["pr0me"]
+description = "High-performance parallel extractor for DIRT dataset"
+
+[[bin]]
+name = "extract"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.4", features = ["derive"] }
+rayon = "1.8"
+walkdir = "2.4"
+indicatif = { version = "0.17", features = ["rayon"] }
+tar = "0.4"
+xz2 = "0.1"
+flate2 = "1.0"
+crossbeam-channel = "0.5"
+num_cpus = "1.16"
+humansize = "2.1"
+chrono = { version = "0.4", features = ["serde"] }
+rand = "0.8"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

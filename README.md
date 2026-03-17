@@ -31,8 +31,13 @@ brew install hdf5@1.10
     ```
     cargo run --release -- build-all-dbs -t type -k 5 --flanking -o dbs_edk2/ ./converted_train.jsonl type_edk2.vocab
     ```
-    If this step fails with an `rkyv` error, see `Build Instructions`.
 5. Evaluate on the test set split
     ```
     cargo run --release -- evaluate ./converted_test.jsonl type_edk2.vocab ./out_edk2.json -t type --flanking --db-dir dbs_edk2/
     ```
+
+## Datasets
+We include the preprocessed data to replicate the $XTRIDE_{PLUS}$ models described in our paper in the `./data` directory. 
+The JSONL files can be directly used starting with step 3. in [How to use the CLI Tool](#how-to-use-the-cli-tool).
+
+To extract samples from the raw DIRT corpus and prepare them for training and inference, see our [Dataset Preparation Docs](data/README.md) and use the provided hash files to replicate original test and validation datasets.
