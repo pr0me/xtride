@@ -13,12 +13,11 @@ path = "lib/lib.rs"
 
 [dependencies]
 anyhow = "1"
-binarly = { version = "1.0", registry = "binarly" }
-binarly-decompiler = { version = "2.0", registry = "binarly" } # git = "ssh://git@github.com/binarly-io/binarly-static-decompiler.git"
 bytecheck = "0.8"
 hashbrown = { version = "0.15", features = ["allocator-api2", "serde"] }
 log = "0.4"
 memmap2 = "0.9"
+once_cell = "1.21.4"
 ordered-float = "5.0.0"
 ouroboros = "0.18"
 regex = "1"
@@ -27,7 +26,3 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 sha2 = "0.10"
 thiserror = "2"
-twox-hash = { version = "2", features = ["std"] }
-
-[patch.binarly]
-binarly-decompiler = { path = "../../binarly/binarly-static-decompiler" }

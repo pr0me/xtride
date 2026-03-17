@@ -1,0 +1,26 @@
+[package]
+name = "xtride-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "xtride-cli"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+xtride = { path = "../" }
+clap = { version = "4" }
+hashbrown = { version = "0.15", features = ["allocator-api2", "serde"] }
+hdf5 = "0.8"
+humantime = "2.1"
+indicatif = { version = "0.17", features = ["rayon"] }
+log = "0.4"
+memmap2 = "0.9"
+rand = "0.9"
+rayon = "1.10"
+rkyv = { version = "0.8", features = ["pointer_width_64"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2"
+twox-hash = "2.1"
