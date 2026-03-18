@@ -5,6 +5,8 @@ edition = "2021"
 authors = ["pr0me"]
 description = "High-performance parallel extractor for DIRT dataset"
 
+[workspace]
+
 [[bin]]
 name = "extract"
 path = "src/main.rs"
