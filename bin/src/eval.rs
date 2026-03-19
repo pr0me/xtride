@@ -681,7 +681,7 @@ fn load_dirt_vocab(
 
 /// Extract type name from prediction string
 /// For DIRT-format datasets, the prediction is the full JSON string
-fn extract_type_name(pred_str: &str) -> String {
+pub(crate) fn extract_type_name(pred_str: &str) -> String {
     // try to parse as DirtType to extract name
     if let Ok(dirt_type) = serde_json::from_str::<DirtType>(pred_str) {
         if let Some(name) = dirt_type.name {

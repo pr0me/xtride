@@ -10,8 +10,10 @@ use xtride::vocab::Vocab;
 mod corpus;
 mod db_creation;
 mod eval;
+mod recover;
 use corpus::Corpus;
 use eval::evaluate;
+use recover::recover;
 
 pub enum XtrideCommands {
     /// Build vocabulary from corpus
@@ -111,6 +113,26 @@ pub enum XtrideCommands {
     PrintDbHashes {
         /// Directory containing rkyv database files
         input: PathBuf,
+    },
+
+    /// Recover variable types from a decompiled single-function text file
+    Recover {
+        /// Path to input text file containing one decompiled function
+        input: PathBuf,
+        /// Path to type vocabulary
+        vocab: PathBuf,
+        /// Optional path to function vocabulary
+        fn_vocab: Option<PathBuf>,
+        /// Directory containing ngram databases
+        db_dir: PathBuf,
+        /// Use flanking ngrams
+        flanking: bool,
+        /// Enable full strip mode (legacy)
+        strip: bool,
+        /// Score threshold for predictions (discard below); set to 1.0 to disable dropping
+        threshold: f64,
+        /// Number of top-k predictions to show per symbol
+        top_k: usize,
     },
 }
 
@@ -413,6 +435,65 @@ fn main() -> Result<()> {
                         .required(true)
                         .value_parser(value_parser!(PathBuf)),
                 ),
+        )
+        .subcommand(
+            Command::new("recover")
+                .about("Recover variable/function types from decompiled function text")
+                .arg(
+                    Arg::new("input")
+                        .help("Path to decompiled single-function text file")
+                        .required(true)
+                        .value_parser(value_parser!(PathBuf)),
+                )
+                .arg(
+                    Arg::new("vocab")
+                        .help("Path to input.vocab")
+                        .long("vocab")
+                        .required(true)
+                        .value_parser(value_parser!(PathBuf)),
+                )
+                .arg(
+                    Arg::new("fn_vocab")
+                        .help("Optional path to input.fn.vocab (function signatures)")
+                        .long("fn-vocab")
+                        .required(false)
+                        .value_parser(value_parser!(PathBuf)),
+                )
+                .arg(
+                    Arg::new("db_dir")
+                        .help("Directory containing ngram databases")
+                        .short('d')
+                        .long("db-dir")
+                        .required(true)
+                        .value_parser(value_parser!(PathBuf)),
+                )
+                .arg(
+                    Arg::new("flanking")
+                        .help("Use flanking ngrams")
+                        .short('f')
+                        .long("flanking")
+                        .action(ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("strip")
+                        .help("Enable full strip mode (legacy)")
+                        .long("strip")
+                        .action(ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("threshold")
+                        .help("Score threshold for predictions (discard below); set to 1.0 to disable dropping")
+                        .long("threshold")
+                        .default_value("1.0")
+                        .value_parser(value_parser!(f64)),
+                )
+                .arg(
+                    Arg::new("top_k")
+                        .help("Number of top-k predictions to show per symbol")
+                        .long("top-k")
+                        .default_value("5")
+                        .value_parser(value_parser!(usize)),
+                ),
         );
 
     let matches = cmd.get_matches();
@@ -467,6 +548,16 @@ fn main() -> Result<()> {
         },
         Some(("print-db-hashes", sub_matches)) => XtrideCommands::PrintDbHashes {
             input: required_arg(sub_matches, "input")?,
+        },
+        Some(("recover", sub_matches)) => XtrideCommands::Recover {
+            input: required_arg(sub_matches, "input")?,
+            vocab: required_arg(sub_matches, "vocab")?,
+            fn_vocab: sub_matches.get_one::<PathBuf>("fn_vocab").cloned(),
+            db_dir: required_arg(sub_matches, "db_dir")?,
+            flanking: sub_matches.get_flag("flanking"),
+            strip: sub_matches.get_flag("strip"),
+            threshold: required_arg(sub_matches, "threshold")?,
+            top_k: required_arg(sub_matches, "top_k")?,
         },
         _ => return Err(anyhow!("missing subcommand")),
     };
@@ -553,6 +644,10 @@ fn main() -> Result<()> {
 
         XtrideCommands::PrintDbHashes { input } => {
             db_creation::print_db_hashes(&input)?;
+        }
+
+        XtrideCommands::Recover { .. } => {
+            recover(&command_instance)?;
         }
     }
 

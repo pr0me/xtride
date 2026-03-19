@@ -36,6 +36,34 @@ brew install hdf5@1.10
     cargo run --release -- evaluate --threshold-sweep ./xtride_plus_test.jsonl xtride_plus.vocab ./out_xtride.json --flanking --db-dir ./xtride_plus_dbs
     ```
 
+## Recovery Mode
+Use `recover` to run best-effort type recovery on a single decompiled function listing (plain text input).
+
+### Input expectations
+- one function per file
+- decompiler-style symbol names are recommended (e.g., `var*`, `param*`, `stack*`, `iVar*`, `sub_*`)
+- predictions are only as good as alignment between your input style and the training data distribution
+
+### Basic usage example
+```bash
+cargo run --release -- recover ./decompiled_function.c \
+    --vocab ./xtride_plus.vocab \
+    --db-dir ./xtride_plus_dbs \
+    --flanking \
+    --top-k 5 \
+```
+
+### Optional flags
+- `--fn-vocab <path>`: explicit function vocabulary path (if omitted, `recover` tries `<vocab_stem>.fn.vocab`)
+- `--strip`: enable legacy full strip mode (DIRT / STRIDE backwards-compatibility, use with caution)
+- `--threshold <float>`: hide predictions below score cutoff (`1.0` disables filtering)
+- `--top-k <int>`: number of candidates shown per symbol (default: `5`)
+
+### Output interpretation
+The presented scores are confidence-style ranking scores from the model pipeline.
+They are useful for relative ranking and filtering, not calibrated probabilities.
+The summary reports detected symbols, filtered symbols, and symbols with no model output.
+
 ## Provided Models
 We include the preprocessed data to replicate the $XTRIDE_{PLUS}$ models described in our paper in the `./data` directory.
 The JSONL files can be directly used to extract a vocabulary and train the model (steps 3 and onwards, choose the 16-db configuration in `bin/src/db_creation.rs`).

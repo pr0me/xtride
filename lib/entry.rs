@@ -1,11 +1,12 @@
 use std::str::FromStr;
 
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::ngram::{ngram_hash, Ngram, VarKind};
+use crate::tokenizer;
 
 static GHIDRA_STACK: Lazy<Regex> = Lazy::new(|| Regex::new(r"[a-z]*Stack_[0-9]+").unwrap());
 static GHIDRA_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"[a-z]*Var[0-9]+").unwrap());
@@ -138,7 +139,7 @@ impl FromStr for LabelType {
 /// Label used for dataset annotation.
 /// This can be used to hold groundtruth information in evaluation datasets and originates from the
 /// DIRT format and benchmarks used in the original STRIDE paper.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Label {
     human: bool,
     label: String,
@@ -261,6 +262,56 @@ impl Entry {
         let mut entry = serde_json::from_value::<Entry>(raw)?;
         entry.full_strip = full_strip;
         Ok(entry)
+    }
+
+    pub fn from_decompiled_text(
+        source: impl AsRef<str>,
+        variables: impl IntoIterator<Item = String>,
+        full_strip: bool,
+    ) -> Self {
+        let mut variables = variables.into_iter().collect::<HashSet<String>>();
+        let tokens = tokenizer::tokenize_incl_funcs(source.as_ref(), &mut variables);
+        Self::from_tokens_with_targets(tokens, variables, full_strip)
+    }
+
+    pub fn from_tokens_with_targets(
+        tokens: Vec<String>,
+        targets: impl IntoIterator<Item = String>,
+        full_strip: bool,
+    ) -> Self {
+        let labels =
+            targets
+                .into_iter()
+                .fold(HashMap::<String, Label>::new(), |mut labels, target| {
+                    labels.insert(
+                        target,
+                        Label {
+                            human: true,
+                            label: "type".into(),
+                        },
+                    );
+                    labels
+                });
+
+        let labels = [LabelType::Type, LabelType::Name]
+            .into_iter()
+            .map(|label_type| {
+                (
+                    label_type,
+                    Labels {
+                        variables: labels.clone(),
+                    },
+                )
+            })
+            .collect::<HashMap<_, _>>();
+
+        Self {
+            tokens,
+            labels,
+            meta: HashMap::new(),
+            stripped_tokens: None,
+            full_strip,
+        }
     }
 
     pub fn tokens(&self) -> &[String] {
