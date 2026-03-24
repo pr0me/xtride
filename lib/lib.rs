@@ -2,5 +2,9 @@ pub mod db;
 pub mod entry;
 pub mod ngram;
 pub mod predict;
+#[cfg(feature = "retyper")]
+pub mod retyper;
 pub mod tokenizer;
+#[cfg(feature = "retyper")]
+pub mod types;
 pub mod vocab;

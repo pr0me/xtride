@@ -11,8 +11,13 @@ resolver = "2"
 name = "xtride"
 path = "lib/lib.rs"
 
+[features]
+default = []
+retyper = ["dep:bias-core"]
+
 [dependencies]
 anyhow = "1"
+bias-core = { git = "https://github.com/vulhunt-re/vulhunt.git", branch = "dev", package = "bias-core", optional = true, features = ["decompiler"] }
 bytecheck = "0.8"
 hashbrown = { version = "0.15", features = ["allocator-api2", "serde"] }
 log = "0.4"

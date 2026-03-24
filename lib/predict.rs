@@ -3,6 +3,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+#[cfg(feature = "retyper")]
+use bias_core::ir::{Term, Type};
 use hashbrown::HashMap;
 use ordered_float::OrderedFloat;
 use serde::Serialize;
@@ -115,6 +117,8 @@ pub struct Prediction {
     var_name: String,
     kind: VarKind,
     pred: String,
+    #[cfg(feature = "retyper")]
+    type_pred: Option<Term<Type>>,
     label: String,
     count: usize,
     score: f64,
@@ -127,6 +131,11 @@ impl Prediction {
 
     pub fn pred(&self) -> &str {
         &self.pred
+    }
+
+    #[cfg(feature = "retyper")]
+    pub fn type_pred(&self) -> Option<&Term<Type>> {
+        self.type_pred.as_ref()
     }
 
     pub fn label(&self) -> &str {
@@ -495,6 +504,8 @@ impl Predictor {
                     final_predictions.push(Prediction {
                         var_name: var.name().to_owned(),
                         pred: best_name.to_owned(),
+                        #[cfg(feature = "retyper")]
+                        type_pred: None,
                         label: label_info.get_label().into(),
                         count: agg_scores
                             .total_counts()
@@ -583,6 +594,31 @@ fn should_add_prediction_dirt(
     }
 }
 
+#[cfg(feature = "retyper")]
+fn should_add_prediction_bias(
+    kind: &VarKind,
+    curr_type: &Option<Term<Type>>,
+    primitive_added: &mut bool,
+) -> bool {
+    match kind {
+        VarKind::Function => true,
+        VarKind::Variable => {
+            let is_struct = curr_type
+                .as_ref()
+                .map_or(false, |t| t.is_pointer_kind(Type::is_struct));
+
+            if is_struct {
+                true
+            } else if !*primitive_added {
+                *primitive_added = true;
+                true
+            } else {
+                false
+            }
+        }
+    }
+}
+
 fn get_top_n_predictions_for_var<'a, 'b>(
     var: &'b LocalVar,
     candidates: Vec<(String, f64)>,
@@ -599,6 +635,17 @@ fn get_top_n_predictions_for_var<'a, 'b>(
             break;
         }
 
+        #[cfg(feature = "retyper")]
+        let curr_type = serde_json::from_str::<Term<Type>>(&name).ok();
+
+        #[cfg(feature = "retyper")]
+        if !should_add_prediction_bias(var.kind(), &curr_type, &mut primitive_added)
+            && !should_add_prediction_dirt(var.kind(), &name, &mut primitive_added)
+        {
+            continue;
+        }
+
+        #[cfg(not(feature = "retyper"))]
         if !should_add_prediction_dirt(var.kind(), &name, &mut primitive_added) {
             continue;
         }
@@ -619,6 +666,8 @@ fn get_top_n_predictions_for_var<'a, 'b>(
         var_preds.push(Prediction {
             var_name: var.name().to_owned(),
             pred: name,
+            #[cfg(feature = "retyper")]
+            type_pred: curr_type,
             label: label_info.get_label().into(),
             count: agg_scores
                 .total_counts()

@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+#[cfg(feature = "retyper")]
+use bias_core::decompiler::DecompilerAst;
 use hashbrown::{HashMap, HashSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -440,5 +442,18 @@ impl Entry {
                 })
                 .flatten(),
         )
+    }
+}
+
+#[cfg(feature = "retyper")]
+impl From<&DecompilerAst> for Entry {
+    fn from(ast: &DecompilerAst) -> Self {
+        let mut vars = ast
+            .variables()
+            .map(|var| var.name().into())
+            .collect::<HashSet<String>>();
+
+        let tokens = tokenizer::tokenize_incl_funcs(ast.source(), &mut vars);
+        Self::from_tokens_with_targets(tokens, vars, false)
     }
 }
