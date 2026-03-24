@@ -79,3 +79,29 @@ Trying to run inference on samples that diverge from this distribution will most
 
 ## Datasets
 Further information on how to extract data for new datasets or to retrain and evaluate on the DIRT dataset are included in [Dataset Preparation Docs](data/README.md).
+
+## Decompiler Integration
+The `retyper` module showcases a reference implementation for a deep integration of the XTRIDE type recovery system with a decompiler.
+The functionality is gated behind a feature flag and can be activate with `cargo build --features retyper`.
+
+We make use of Binarly's BIAS framework for program analysis that was published as part of [VulHunt](https://github.com/vulhunt-re/vulhunt). The framework features an expressive typing system that integrates seamlessly with the fork of the Ghidra decompiler backend that is used to lift internally recovered representations to pseudo C. 
+We extended this fork and its ffi with [interfaces that allow to directly modify variable types in the decompiler](https://github.com/vulhunt-re/vulhunt/blob/4cca2ee479cca49dc4cd68b55383821e588ac197/bias-core/cxx/decompiler.cc#L1087).
+This enables direct application of inferred types within the decompiler context, incl. propagation of field types and similar.
+
+<table>
+  <tr>
+    <td align="center"><b>Before:</b></td>
+    <td align="center"><b>After:</b></td>
+  </tr>
+  <tr>
+    <td><img src="images/before.png" alt="without_types"></td>
+    <td><img src="images/after.png" alt="types_recovered"></td>
+  </tr>
+</table>
+
+For further information and examples check out [our blog post](https://www.binarly.io/blog/type-inference-for-decompiled-code-from-hidden-semantics-to-structured-insights).
+
+In general, any decompiler integration requires a translation layer from text-based predictions (from the vocabulary) into a tool-specific representation. 
+The format used in DIRT is expressive enough to allow for this but requires recursive resolution of types (e.g., in structs) and manual computation of offsets and sizes (all necessary info is there, incl. padding annotations).
+For the `retyper` module, the types in the vocab (and thus, in the training dataset) are required to be serialized [BIAS types](https://github.com/vulhunt-re/vulhunt/blob/4cca2ee479cca49dc4cd68b55383821e588ac197/bias-core/src/ir/types.rs).
+We are currently not planning on publishing a full pipeline for data extraction and dataset creation and thus deem this a reference implementation rather than a full PoC.
