@@ -105,3 +105,16 @@ In general, any decompiler integration requires a translation layer from text-ba
 The format used in DIRT is expressive enough to allow for this but requires recursive resolution of types (e.g., in structs) and manual computation of offsets and sizes (all necessary info is there, incl. padding annotations).
 For the `retyper` module, the types in the vocab (and thus, in the training dataset) are required to be serialized [BIAS types](https://github.com/vulhunt-re/vulhunt/blob/4cca2ee479cca49dc4cd68b55383821e588ac197/bias-core/src/ir/types.rs).
 We are currently not planning on publishing a full pipeline for data extraction and dataset creation and thus deem this a reference implementation rather than a full PoC.
+
+## Citation
+If you use the code, techniques or results provided with this repository and the corresponding paper, please cite our work as follows:
+```
+@inproceedings{Seidel_Practical_Type_Inference_2026,
+    author = {Seidel, Lukas and Thomas, Sam L. and Rieck, Konrad},
+    title = {{Practical Type Inference: High-Throughput Recovery of Real-World Structures and Function Signatures}},
+    series = {The 16th ACM Conference on Data and Application Security and Privacy},
+    month = jun,
+    year = {2026},
+    url = {https://arxiv.org/abs/2603.08225},
+}
+```
